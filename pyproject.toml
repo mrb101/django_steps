@@ -1,7 +1,7 @@
 [project]
 name = "django-steps"
 version = "0.1.0"
-description = "A Django app implementing the transactional outbox pattern with CloudEvents support"
+description = "A flexible and extensible Django application for defining and managing dynamic workflows with custom steps, statuses, and CEL-based conditional transitions."
 readme = "README.md"
 license = "MIT"
 authors = [
