@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer: {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'claims:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'claims:customer-list' %}">Customers</a></li>
+            <li class="breadcrumb-item active">{{ customer.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Customer Information</h5>
+                    <a href="{% url 'claims:customer-update' customer.pk %}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Name:</dt>
+                        <dd class="col-sm-8">{{ customer.name }}</dd>
+
+                        <dt class="col-sm-4">Email:</dt>
+                        <dd class="col-sm-8"><a href="mailto:{{ customer.email }}">{{ customer.email }}</a></dd>
+
+                        <dt class="col-sm-4">Phone:</dt>
+                        <dd class="col-sm-8">{{ customer.phone|default:"Not provided" }}</dd>
+
+                        <dt class="col-sm-4">Joined:</dt>
+                        <dd class="col-sm-8">{{ customer.date_joined|date:"F j, Y" }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            {% if customer.address %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Address</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ customer.address|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <!-- Policies -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Policies</h5>
+                    <a href="{% url 'claims:policy-create-for-customer' customer.pk %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Add Policy
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if policies %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Policy Number</th>
+                                    <th>Type</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                    <th>Premium</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for policy in policies %}
+                                <tr>
+                                    <td>{{ policy.policy_number }}</td>
+                                    <td>{{ policy.get_policy_type_display }}</td>
+                                    <td>{{ policy.start_date|date:"M d, Y" }}</td>
+                                    <td>{{ policy.end_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if policy.is_active %}
+                                            {% if policy.is_expired %}
+                                                <span class="badge bg-danger">Expired</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ policy.premium_amount }}</td>
+                                    <td>
+                                        <a href="{% url 'claims:policy-detail' policy.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'claims:claim-create-for-policy' policy.pk %}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-file-medical"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        This customer doesn't have any policies yet.
+                        <a href="{% url 'claims:policy-create-for-customer' customer.pk %}" class="alert-link">Add a policy</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Claims -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Claims</h5>
+                </div>
+                <div class="card-body">
+                    {% if claims %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Claim Number</th>
+                                    <th>Policy</th>
+                                    <th>Filing Date</th>
+                                    <th>Amount</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for claim in claims %}
+                                <tr>
+                                    <td>{{ claim.claim_number }}</td>
+                                    <td>{{ claim.policy.get_policy_type_display }}</td>
+                                    <td>{{ claim.filing_date|date:"M d, Y" }}</td>
+                                    <td>${{ claim.amount_claimed }}</td>
+                                    <td>
+                                        <span class="badge {% if claim.priority == 'HIGH' or claim.priority == 'URGENT' %}bg-danger{% elif claim.priority == 'MEDIUM' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {{ claim.get_priority_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'claims:claim-detail' claim.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">This customer doesn't have any claims yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

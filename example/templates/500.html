@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="alert alert-danger">
+        <h1>500 - Server Error</h1>
+        <p>An unexpected error occurred. Our technical team has been notified.</p>
+        <a href="{% url 'orders:product_list' %}" class="btn btn-primary">Go to Homepage</a>
+    </div>
+</div>
+{% endblock %}

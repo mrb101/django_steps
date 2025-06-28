@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Insurance Claims Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Insurance Claims Dashboard</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Customers</h5>
+                    <h2 class="card-text">{{ total_customers }}</h2>
+                    <a href="{% url 'claims:customer-list' %}" class="btn btn-light">View All</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Policies</h5>
+                    <h2 class="card-text">{{ total_policies }}</h2>
+                    <a href="{% url 'claims:policy-list' %}" class="btn btn-light">View All</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Claims</h5>
+                    <h2 class="card-text">{{ total_claims }}</h2>
+                    <a href="{% url 'claims:claim-list' %}" class="btn btn-light">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Recent Claims</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Claim Number</th>
+                                <th>Customer</th>
+                                <th>Date Filed</th>
+                                <th>Amount</th>
+                                <th>Priority</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for claim in recent_claims %}
+                            <tr>
+                                <td><a href="{% url 'claims:claim-detail' claim.pk %}">{{ claim.claim_number }}</a></td>
+                                <td>{{ claim.policy.customer.name }}</td>
+                                <td>{{ claim.filing_date|date:"M d, Y" }}</td>
+                                <td>${{ claim.amount_claimed }}</td>
+                                <td><span class="badge {% if claim.priority == 'HIGH' %}bg-danger{% elif claim.priority == 'MEDIUM' %}bg-warning{% else %}bg-secondary{% endif %}">{{ claim.get_priority_display }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No claims found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'claims:claim-list' %}" class="btn btn-primary">View All Claims</a>
+                    <a href="{% url 'claims:claim-create' %}" class="btn btn-success">Create New Claim</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Claims by Priority</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Low:</span>
+                                        <span class="badge bg-secondary">{{ claims_by_priority.LOW }}</span>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Medium:</span>
+                                        <span class="badge bg-warning">{{ claims_by_priority.MEDIUM }}</span>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex justify-content-between">
+                                        <span>High:</span>
+                                        <span class="badge bg-danger">{{ claims_by_priority.HIGH }}</span>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Urgent:</span>
+                                        <span class="badge bg-dark">{{ claims_by_priority.URGENT }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Policies by Type</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Auto:</span>
+                                        <span class="badge bg-primary">{{ policies_by_type.AUTO }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Home:</span>
+                                        <span class="badge bg-success">{{ policies_by_type.HOME }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Health:</span>
+                                        <span class="badge bg-info">{{ policies_by_type.HEALTH }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Life:</span>
+                                        <span class="badge bg-dark">{{ policies_by_type.LIFE }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

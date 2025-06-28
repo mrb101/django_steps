@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+recursive-include django_steps/src/django_steps/templates *
+recursive-include django_steps/src/django_steps/static *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]

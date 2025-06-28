@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}Claim Details: {{ claim.claim_number }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'claims:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'claims:claim-list' %}">Claims</a></li>
+            <li class="breadcrumb-item active">{{ claim.claim_number }}</li>
+        </ol>
+    </nav>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2>Claim {{ claim.claim_number }}</h2>
+            <span class="badge {% if claim.priority == 'HIGH' or claim.priority == 'URGENT' %}bg-danger{% elif claim.priority == 'MEDIUM' %}bg-warning{% else %}bg-secondary{% endif %} p-2">
+                {{ claim.get_priority_display }}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Claim Information</h5>
+                    <hr>
+                    <dl class="row">
+                        <dt class="col-sm-4">Customer:</dt>
+                        <dd class="col-sm-8"><a href="{% url 'claims:customer-detail' claim.policy.customer.id %}">{{ claim.policy.customer.name }}</a></dd>
+
+                        <dt class="col-sm-4">Policy:</dt>
+                        <dd class="col-sm-8"><a href="{% url 'claims:policy-detail' claim.policy.id %}">{{ claim.policy.policy_number }} ({{ claim.policy.get_policy_type_display }})</a></dd>
+
+                        <dt class="col-sm-4">Incident Date:</dt>
+                        <dd class="col-sm-8">{{ claim.incident_date }}</dd>
+
+                        <dt class="col-sm-4">Filing Date:</dt>
+                        <dd class="col-sm-8">{{ claim.filing_date }}</dd>
+
+                        <dt class="col-sm-4">Location:</dt>
+                        <dd class="col-sm-8">{{ claim.incident_location|default:"Not specified" }}</dd>
+
+                        <dt class="col-sm-4">Amount Claimed:</dt>
+                        <dd class="col-sm-8">${{ claim.amount_claimed }}</dd>
+
+                        <dt class="col-sm-4">Amount Approved:</dt>
+                        <dd class="col-sm-8">{% if claim.amount_approved %}${{ claim.amount_approved }}{% else %}Pending{% endif %}</dd>
+                    </dl>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Workflow Status</h5>
+                    <hr>
+                    {% if workflow_instance %}
+                        <dl class="row">
+                            <dt class="col-sm-4">Workflow:</dt>
+                            <dd class="col-sm-8">{{ workflow_instance.workflow.name }}</dd>
+
+                            <dt class="col-sm-4">Current Step:</dt>
+                            <dd class="col-sm-8">{{ workflow_instance.current_step.name }}</dd>
+
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-info">{{ workflow_instance.current_step_status.name }}</span>
+                            </dd>
+
+                            <dt class="col-sm-4">Started:</dt>
+                            <dd class="col-sm-8">{{ workflow_instance.started_at }}</dd>
+
+                            <dt class="col-sm-4">Completed:</dt>
+                            <dd class="col-sm-8">{{ workflow_instance.completed_at|default:"In Progress" }}</dd>
+                        </dl>
+
+                        {% if not workflow_instance.completed_at %}
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                    Cancel Claim
+                                </button>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-warning">No workflow is associated with this claim.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h5>Claim Description</h5>
+                <hr>
+                <p>{{ claim.description }}</p>
+            </div>
+
+            {% if claim.supporting_documents %}
+                <div class="mt-4">
+                    <h5>Supporting Documents</h5>
+                    <hr>
+                    <p><a href="{{ claim.supporting_documents.url }}" target="_blank">View Document</a></p>
+                </div>
+            {% endif %}
+
+            {% if claim.adjuster_notes %}
+                <div class="mt-4">
+                    <h5>Adjuster Notes</h5>
+                    <hr>
+                    <p>{{ claim.adjuster_notes }}</p>
+                </div>
+            {% endif %}
+
+            {% if claim.supervisor_notes %}
+                <div class="mt-4">
+                    <h5>Supervisor Notes</h5>
+                    <hr>
+                    <p>{{ claim.supervisor_notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Workflow Action Cards -->
+    {% if workflow_instance and not workflow_instance.completed_at %}
+        <div class="row mb-4">
+            <!-- Start Review Button for Initial Review stage -->
+            {% if workflow_instance.current_step.name == 'Initial Review' %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Initial Review</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>This claim is in the initial review stage. Start the formal review process to continue.</p>
+                            <a href="{% url 'claims:start-claim-review' claim.pk %}" class="btn btn-primary">Start Review</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Claim Review Form -->
+            {% if review_form %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Claim Review</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'claims:process-claim-review' claim.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="id_amount_approved" class="form-label">Amount Approved ($):</label>
+                                    <input type="number" name="amount_approved" id="id_amount_approved" class="form-control" min="0" max="{{ claim.amount_claimed }}" step="0.01" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_adjuster_notes" class="form-label">Review Notes:</label>
+                                    <textarea name="adjuster_notes" id="id_adjuster_notes" class="form-control" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Review</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Claim Approval Form -->
+            {% if approval_form %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Claim Approval</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'claims:process-claim-approval' claim.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="id_supervisor_notes" class="form-label">Supervisor Notes:</label>
+                                    <textarea name="supervisor_notes" id="id_supervisor_notes" class="form-control" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="decision" id="approve" value="approve" required>
+                                        <label class="form-check-label" for="approve">Approve</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="decision" id="reject" value="reject" required>
+                                        <label class="form-check-label" for="reject">Reject</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Decision</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Payment Processing Form -->
+            {% if workflow_instance.current_step.name == 'Payment Processing' %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Process Payment</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'claims:process-claim-payment' claim.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="id_amount" class="form-label">Payment Amount ($):</label>
+                                    <input type="number" name="amount" id="id_amount" class="form-control" min="0" max="{{ claim.amount_approved }}" value="{{ claim.amount_approved }}" step="0.01" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_payment_method" class="form-label">Payment Method:</label>
+                                    <select name="payment_method" id="id_payment_method" class="form-select" required>
+                                        <option value="">Select a method</option>
+                                        <option value="CHECK">Check</option>
+                                        <option value="DIRECT_DEPOSIT">Direct Deposit</option>
+                                        <option value="WIRE">Wire Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_reference_number" class="form-label">Reference Number:</label>
+                                    <input type="text" name="reference_number" id="id_reference_number" class="form-control">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_notes" class="form-label">Payment Notes:</label>
+                                    <textarea name="notes" id="id_notes" class="form-control" rows="2"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success">Process Payment</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Tabs for Notes and Payments -->
+    <ul class="nav nav-tabs" id="claimTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">Claim Notes ({{ notes|length }})</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab">Payments ({{ payments|length }})</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="claimTabsContent">
+        <!-- Notes Tab -->
+        <div class="tab-pane fade show active" id="notes" role="tabpanel">
+            <div class="card border-top-0">
+                <div class="card-body">
+                    <h5>Add Note</h5>
+                    <form method="post" action="{% url 'claims:add-claim-note' claim.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea name="content" class="form-control" rows="2" placeholder="Add a note..." required></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="id_is_internal" name="is_internal">
+                            <label class="form-check-label" for="id_is_internal">Internal note (not visible to customer)</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Note</button>
+                    </form>
+
+                    <hr>
+
+                    <h5>Notes History</h5>
+                    <div class="list-group mt-3">
+                        {% for note in notes %}
+                            <div class="list-group-item list-group-item-action flex-column align-items-start">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ note.user.get_full_name|default:note.user.username }}</h6>
+                                    <small>{{ note.created_at }}</small>
+                                </div>
+                                <p class="mb-1">{{ note.content }}</p>
+                                {% if note.is_internal %}
+                                    <span class="badge bg-secondary">Internal</span>
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <div class="alert alert-info">No notes have been added to this claim.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div class="tab-pane fade" id="payments" role="tabpanel">
+            <div class="card border-top-0">
+                <div class="card-body">
+                    <h5>Payment History</h5>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th>Processed By</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date }}</td>
+                                    <td>${{ payment.amount }}</td>
+                                    <td>{{ payment.get_payment_method_display }}</td>
+                                    <td>{{ payment.reference_number|default:"-" }}</td>
+                                    <td>{{ payment.processed_by.get_full_name|default:payment.processed_by.username }}</td>
+                                    <td>{{ payment.notes|default:"-" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No payments have been processed for this claim.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="cancelModalLabel">Cancel Claim</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'claims:cancel-claim' claim.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel this claim? This action cannot be undone.</p>
+                    <div class="mb-3">
+                        <label for="id_reason" class="form-label">Reason for cancellation:</label>
+                        <textarea name="reason" id="id_reason" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

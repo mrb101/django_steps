@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}New Claim{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'claims:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'claims:claim-list' %}">Claims</a></li>
+            <li class="breadcrumb-item active">New Claim</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>File New Claim</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="{{ form.policy.id_for_label }}" class="form-label">Policy</label>
+                    <select name="{{ form.policy.name }}" id="{{ form.policy.id_for_label }}" class="form-select {% if form.policy.errors %}is-invalid{% endif %}" required>
+                        <option value="">Select a policy</option>
+                        {% for policy_id, policy_label in form.fields.policy.choices %}
+                            {% if policy_id %}
+                                <option value="{{ policy_id }}" {% if form.policy.value|stringformat:"s" == policy_id|stringformat:"s" %}selected{% endif %}>{{ policy_label }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    {% if form.policy.errors %}
+                        <div class="invalid-feedback">{{ form.policy.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.incident_date.id_for_label }}" class="form-label">Incident Date</label>
+                    <input type="date" name="{{ form.incident_date.name }}" id="{{ form.incident_date.id_for_label }}" class="form-control {% if form.incident_date.errors %}is-invalid{% endif %}" value="{{ form.incident_date.value|date:'Y-m-d'|default:'' }}" required>
+                    {% if form.incident_date.errors %}
+                        <div class="invalid-feedback">{{ form.incident_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                    <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" class="form-control {% if form.description.errors %}is-invalid{% endif %}" rows="4" required>{{ form.description.value|default:'' }}</textarea>
+                    {% if form.description.errors %}
+                        <div class="invalid-feedback">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.amount_claimed.id_for_label }}" class="form-label">Amount Claimed ($)</label>
+                        <input type="number" name="{{ form.amount_claimed.name }}" id="{{ form.amount_claimed.id_for_label }}" class="form-control {% if form.amount_claimed.errors %}is-invalid{% endif %}" value="{{ form.amount_claimed.value|default:'' }}" min="0" step="0.01" required>
+                        {% if form.amount_claimed.errors %}
+                            <div class="invalid-feedback">{{ form.amount_claimed.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="{{ form.priority.id_for_label }}" class="form-label">Priority</label>
+                        <select name="{{ form.priority.name }}" id="{{ form.priority.id_for_label }}" class="form-select {% if form.priority.errors %}is-invalid{% endif %}">
+                            {% for priority_id, priority_label in form.fields.priority.choices %}
+                                {% if priority_id %}
+                                    <option value="{{ priority_id }}" {% if form.priority.value == priority_id or forloop.first and not form.priority.value %}selected{% endif %}>{{ priority_label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        {% if form.priority.errors %}
+                            <div class="invalid-feedback">{{ form.priority.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.incident_location.id_for_label }}" class="form-label">Incident Location</label>
+                    <input type="text" name="{{ form.incident_location.name }}" id="{{ form.incident_location.id_for_label }}" class="form-control {% if form.incident_location.errors %}is-invalid{% endif %}" value="{{ form.incident_location.value|default:'' }}">
+                    {% if form.incident_location.errors %}
+                        <div class="invalid-feedback">{{ form.incident_location.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="{{ form.supporting_documents.id_for_label }}" class="form-label">Supporting Documents</label>
+                    <input type="file" name="{{ form.supporting_documents.name }}" id="{{ form.supporting_documents.id_for_label }}" class="form-control {% if form.supporting_documents.errors %}is-invalid{% endif %}">
+                    {% if form.supporting_documents.errors %}
+                        <div class="invalid-feedback">{{ form.supporting_documents.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-text">Upload any documents that support your claim (e.g., photos, receipts, reports).</div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'claims:claim-list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">File Claim</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

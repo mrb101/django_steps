@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Claims{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Claims</h1>
+        <a href="{% url 'claims:claim-create' %}" class="btn btn-primary">
+            <i class="fas fa-file-medical"></i> New Claim
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select name="priority" id="priority" class="form-select">
+                        <option value="">All Priorities</option>
+                        {% for code, name in priorities %}
+                            <option value="{{ code }}" {% if current_priority == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="policy_type" class="form-label">Policy Type</label>
+                    <select name="policy_type" id="policy_type" class="form-select">
+                        <option value="">All Policy Types</option>
+                        {% for code, name in policy_types %}
+                            <option value="{{ code }}" {% if current_policy_type == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                    <a href="{% url 'claims:claim-list' %}" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Claim Number</th>
+                            <th>Customer</th>
+                            <th>Policy Type</th>
+                            <th>Filing Date</th>
+                            <th>Amount</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
+                        <tr>
+                            <td>{{ claim.claim_number }}</td>
+                            <td>{{ claim.policy.customer.name }}</td>
+                            <td>{{ claim.policy.get_policy_type_display }}</td>
+                            <td>{{ claim.filing_date|date:"M d, Y" }}</td>
+                            <td>${{ claim.amount_claimed }}</td>
+                            <td>
+                                <span class="badge {% if claim.priority == 'HIGH' or claim.priority == 'URGENT' %}bg-danger{% elif claim.priority == 'MEDIUM' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ claim.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ claim.workflow_instance.current_step_status.name }}
+                            </td>
+                            <td>
+                                <a href="{% url 'claims:claim-detail' claim.pk %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No claims found matching the criteria.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_priority %}&priority={{ current_priority }}{% endif %}{% if current_policy_type %}&policy_type={{ current_policy_type }}{% endif %}">&laquo; First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_priority %}&priority={{ current_priority }}{% endif %}{% if current_policy_type %}&policy_type={{ current_policy_type }}{% endif %}">Previous</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_priority %}&priority={{ current_priority }}{% endif %}{% if current_policy_type %}&policy_type={{ current_policy_type }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_priority %}&priority={{ current_priority }}{% endif %}{% if current_policy_type %}&policy_type={{ current_policy_type }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_priority %}&priority={{ current_priority }}{% endif %}{% if current_policy_type %}&policy_type={{ current_policy_type }}{% endif %}">Last &raquo;</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
