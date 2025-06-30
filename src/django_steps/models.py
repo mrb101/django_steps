@@ -480,12 +480,6 @@ class WorkflowInstance(models.Model):
         This is determined if it is on the final step and its current status
         is marked as a completion status.
         """
-        print(
-            f"current step: {self.current_step}",
-            f"is_final_step: {self.current_step.is_final_step}",
-            f"current_step_status: {self.current_step_status}",
-            f"is_completion_status: {self.current_step_status.is_completion_status}"
-        )
         return (
             self.current_step is not None
             and self.current_step.is_final_step
